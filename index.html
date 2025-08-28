@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Портфолио — папки</title>
+<meta name="description" content="Портфолио: папки с примерами работ. Открытие папки — модальное окно или отдельная страница.">
+<style>
+  /* ========== Базовые переменные и ресет ========== */
+  :root{
+    --bg:#0b1221;
+    --card:#0f1726;
+    --accent:#f6b042;
+    --glass: rgba(255,255,255,0.04);
+    --muted: #9aa4b2;
+    --radius: 14px;
+    --transition: 240ms cubic-bezier(.2,.9,.3,1);
+  }
+  *{box-sizing:border-box}
+  html,body,#app{height:100%}
+  body{
+    margin:0;
+    font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% 10%, rgba(246,176,66,0.06), transparent 8%),
+      radial-gradient(900px 400px at 90% 90%, rgba(74,85,104,0.03), transparent 8%),
+      var(--bg);
+    color: #e6eef6;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    padding:28px;
+  }
+
+  .container{max-width:1200px;margin:0 auto}
+
+  header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  h1{margin:0;font-size:28px;letter-spacing:-0.02em}
+  p.lead{margin:6px 0 0;color:var(--muted);font-size:14px}
+
+  /* ========== Сетка папок ========== */
+  .folders-grid{
+    margin-top:28px;
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:20px;
+  }
+
+  .folder{
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid var(--glass);
+    border-radius:var(--radius);
+    padding:18px;
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+    cursor:pointer;
+    transition:transform var(--transition), box-shadow var(--transition);
+    box-shadow: 0 8px 20px rgba(2,6,23,0.6);
+    position:relative;
+    overflow:visible;
+  }
+  .folder:focus{outline:2px solid rgba(246,176,66,0.18);outline-offset:4px}
+  .folder:hover{transform:translateY(-6px); box-shadow:0 18px 30px rgba(2,6,23,0.8)}
+
+  /* Folder art */
+  .folder-art{width:86px; flex-shrink:0; perspective:1000px}
+  .folder-box{
+    width:86px;height:62px;position:relative;
+    transform-origin: left bottom;
+  }
+  .folder-flap{
+    position:absolute;left:0;top:-6px;width:100%;height:28px;border-radius:8px;
+    background:linear-gradient(180deg,#f59e0b,#b45309);
+    transform-origin: left bottom;
+    transition: transform 320ms cubic-bezier(.2,.9,.3,1);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  }
+  .folder-body{
+    position:absolute;left:0;top:18px;width:100%;height:44px;border-radius:8px;
+    background:linear-gradient(180deg,#92400e,#6b2109);
+    box-shadow: inset 0 -4px 12px rgba(0,0,0,0.25);
+  }
+  .folder.open .folder-flap{
+    transform: rotateX(16deg) translateY(-6px) translateX(4px);
+  }
+
+  .folder-title{flex:1}
+  .folder-title h3{margin:0;font-size:16px}
+  .folder-title p{margin:6px 0 0;color:var(--muted);font-size:13px}
+
+  .folder-controls{display:flex;flex-direction:column;gap:8px}
+  .link-page{
+    background:transparent;border:0;color:var(--accent);text-decoration:underline;font-size:13px;cursor:pointer;padding:6px 8px;border-radius:8px
+  }
+  .open-btn{
+    background:rgba(255,255,255,0.04);border:0;color:#eaf1ff;padding:8px 10px;border-radius:10px;font-weight:600;cursor:pointer
+  }
+
+  /* ========== Модальное окно (стилизовано под \"папку\") ========== */
+  .modal-root{position:fixed;inset:0;display:none;align-items:flex-start;justify-content:center;padding:34px;z-index:60}
+  .modal-root.visible{display:flex}
+  .modal-backdrop{position:absolute;inset:0;background:rgba(1,2,5,0.6);backdrop-filter: blur(6px)}
+  .modal-window{
+    position:relative;z-index:10;max-width:1100px;width:100%;border-radius:18px;
+    overflow:hidden;background:linear-gradient(180deg, rgba(12,16,26,0.96), rgba(6,8,12,0.96));
+    border:1px solid rgba(255,255,255,0.03);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+    transform-origin: center top;
+    animation:popup 320ms cubic-bezier(.2,.9,.3,1);
+  }
+  @keyframes popup { from{transform:translateY(-8px) scale(0.995);opacity:0} to{transform:none;opacity:1} }
+
+  .modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.02)}
+  .modal-header .left{display:flex;align-items:center;gap:12px}
+  .modal-header h2{margin:0;font-size:18px}
+  .modal-footer{padding:12px 18px;border-top:1px solid rgba(255,255,255,0.02);text-align:right;color:var(--muted);font-size:13px}
+
+  /* Плитка внутри модального */
+  .tiles{padding:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+  .tile{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.02)}
+  .tile video{width:100%;height:100%;object-fit:cover;display:block;background:#000}
+  .tile .meta{padding:10px;display:flex;align-items:center;justify-content:space-between}
+  .meta h4{margin:0;font-size:14px}
+  .meta .tag{font-size:12px;color:var(--muted)}
+
+  /* ========== Страница категории (hash view) ========== */
+  .page-view{display:none;margin-top:20px}
+  .page-view.visible{display:block}
+  .page-header{display:flex;align-items:center;justify-content:space-between;padding:14px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.02)}
+  .page-grid{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+
+  /* Мобильные правки: отключать hover-preview (сделаем controls видимыми) */
+  @media (hover:none) {
+    .tile video{pointer-events:auto}
+  }
+
+  /* Небольшие детали */
+  button{font-family:inherit}
+  .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;border:0;clip:rect(0 0 0 0);overflow:hidden;white-space:nowrap}
+</style>
+</head>
+<body>
+  <div id="app" class="container">
+    <header>
+      <div>
+        <h1>Портфолио — папки</h1>
+        <p class="lead">Нажми на папку — откроется модал (стилизованный \"папкой\"). Или открой в отдельной странице.</p>
+      </div>
+      <div style="text-align:right;color:var(--muted);font-size:13px">
+        Десктоп: hover-превью • Мобильный: controls
+      </div>
+    </header>
+
+    <!-- Главная сетка папок -->
+    <main id="home" aria-live="polite">
+      <div class="folders-grid" id="foldersGrid">
+        <!-- Генерируется JS -->
+      </div>
+    </main>
+
+    <!-- Page view (category page) -->
+    <section id="pageView" class="page-view" aria-hidden="true">
+      <div class="page-header">
+        <div>
+          <h2 id="pageTitle" style="margin:0">Категория</h2>
+          <div id="pageSubtitle" style="font-size:13px;color:var(--muted)">Примеры работ</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button id="backToHome" class="open-btn" title="Назад">← Назад</button>
+        </div>
+      </div>
+
+      <div class="page-grid" id="pageGrid"></div>
+    </section>
+
+    <!-- Modal -->
+    <div id="modalRoot" class="modal-root" aria-hidden="true" role="dialog" aria-modal="true">
+      <div class="modal-backdrop" id="modalBackdrop"></div>
+      <div class="modal-window" role="document" aria-labelledby="modalTitle">
+        <div class="modal-header">
+          <div class="left">
+            <div class="folder-art" style="width:58px">
+              <div class="folder-box">
+                <div class="folder-flap" id="modalFlap" style="width:58px;height:20px;border-radius:6px"></div>
+                <div class="folder-body" style="width:58px;height:34px;border-radius:6px"></div>
+              </div>
+            </div>
+            <div>
+              <h2 id="modalTitle" style="margin:0">Категория</h2>
+              <div id="modalSubtitle" style="font-size:13px;color:var(--muted)">Примеры</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;align-items:center">
+            <button id="openAsPageFromModal" class="link-page">Открыть в странице</button>
+            <button id="closeModal" class="open-btn">Закрыть</button>
+          </div>
+        </div>
+
+        <div class="tiles" id="modalTiles" tabindex="0">
+          <!-- tiles -->
+        </div>
+        <div class="modal-footer">Наведите на видео для быстрого превью. На мобильных — нажмите плей.</div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+/*
+  Vanilla JS implementation.
+  - data: videosData настраивается ниже
+  - клики по папкам открывают модал; кнопка открывает страницу (hash)
+  - hover preview: play muted onmouseenter (desktop)
+  - клавиши: Esc закрывает модал; Back button возвращает домой (очищает hash)
+*/
+
+const videosData = {
+  reels: {
+    key: 'reels',
+    title: 'Reels — вертикальные видео',
+    items: [
+      { id: 'r1', title: 'Reel 1', src: '/videos/reel1.mp4', poster: '/videos/reel1.jpg' },
+      { id: 'r2', title: 'Reel 2', src: '/videos/reel2.mp4', poster: '/videos/reel2.jpg' },
+      { id: 'r3', title: 'Reel 3', src: '/videos/reel3.mp4', poster: '/videos/reel3.jpg' },
+    ]
+  },
+  events: {
+    key: 'events',
+    title: 'Мероприятия — репортажная съемка',
+    items: [
+      { id: 'e1', title: 'Event 1', src: '/videos/event1.mp4', poster: '/videos/event1.jpg' },
+      { id: 'e2', title: 'Event 2', src: '/videos/event2.mp4', poster: '/videos/event2.jpg' },
+    ]
+  },
+  card: {
+    key: 'card',
+    title: 'Видео визитки',
+    items: [
+      { id: 'c1', title: 'Card 1', src: '/videos/card1.mp4', poster: '/videos/card1.jpg' },
+      { id: 'c2', title: 'Card 2', src: '/videos/card2.mp4', poster: '/videos/card2.jpg' },
+    ]
+  },
+  podcasts: {
+    key: 'podcasts',
+    title: 'Подкасты',
+    items: [
+      { id: 'p1', title: 'Podcast 1', src: '/videos/podcast1.mp4', poster: '/videos/podcast1.jpg' },
+      { id: 'p2', title: 'Podcast 2', src: '/videos/podcast2.mp4', poster: '/videos/podcast2.jpg' },
+    ]
+  }
+};
+
+/* --- элементы --- */
+const foldersGrid = document.getElementById('foldersGrid');
+const modalRoot = document.getElementById('modalRoot');
+const modalTiles = document.getElementById('modalTiles');
+const modalTitle = document.getElementById('modalTitle');
+const modalSubtitle = document.getElementById('modalSubtitle');
+const modalFlap = document.getElementById('modalFlap');
+const closeModalBtn = document.getElementById('closeModal');
+const modalBackdrop = document.getElementById('modalBackdrop');
+const openAsPageFromModal = document.getElementById('openAsPageFromModal');
+
+const pageView = document.getElementById('pageView');
+const pageTitle = document.getElementById('pageTitle');
+const pageSubtitle = document.getElementById('pageSubtitle');
+const pageGrid = document.getElementById('pageGrid');
+const backToHome = document.getElementById('backToHome');
+
+let currentCategoryKey = null;
+
+/* --- рендер папок --- */
+function createFolderCard(cat){
+  const root = document.createElement('div');
+  root.className = 'folder';
+  root.tabIndex = 0;
+  root.setAttribute('role','button');
+  root.setAttribute('aria-label', `Открыть ${cat.title}`);
+
+  root.innerHTML = `
+    <div class="folder-art" aria-hidden="true">
+      <div class="folder-box">
+        <div class="folder-flap"></div>
+        <div class="folder-body"></div>
+      </div>
+    </div>
+    <div class="folder-title">
+      <h3>${escapeHtml(cat.title)}</h3>
+      <p>Примеры: ${cat.items.length} шт.</p>
+    </div>
+    <div class="folder-controls">
+      <button class="open-btn">Открыть</button>
+      <button class="link-page" data-key="${cat.key}">Открыть в странице</button>
+    </div>
+  `;
+
+  // клик по всей карточке — открыть модал
+  root.addEventListener('click', (e) => {
+    if (e.target && e.target.classList.contains('link-page')) return; // handled separately
+    openModal(cat.key);
+  });
+  // клавиша Enter
+  root.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(cat.key); }
+  });
+  // ссылка "Открыть в странице"
+  root.querySelectorAll('.link-page').forEach(btn=>{
+    btn.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      const k = btn.getAttribute('data-key');
+      openCategoryPage(k);
+    });
+  });
+  return root;
+}
+
+Object.values(videosData).forEach(cat=>{
+  foldersGrid.appendChild(createFolderCard(cat));
+});
+
+/* --- модал --- */
+function openModal(key){
+  const cat = videosData[key];
+  if(!cat) return;
+  currentCategoryKey = key;
+  // flap анимация: добавим класс open на карточке (на модале просто сделаем визуал)
+  modalFlap.style.transform = 'rotateX(16deg) translateY(-6px) translateX(4px)';
+  modalRoot.classList.add('visible');
+  modalRoot.setAttribute('aria-hidden','false');
+  modalTitle.textContent = cat.title;
+  modalSubtitle.textContent = `${cat.items.length} примеров`;
+  modalTiles.innerHTML = '';
+  renderTiles(cat.items, modalTiles);
+  // set focus
+  closeModalBtn.focus();
+}
+
+function closeModal(){
+  modalRoot.classList.remove('visible');
+  modalRoot.setAttribute('aria-hidden','true');
+  modalFlap.style.transform = ''; // reset
+  // pause all videos in modal
+  modalTiles.querySelectorAll('video').forEach(v=>{ v.pause(); try{ v.currentTime = 0 }catch(e){} });
+  currentCategoryKey = null;
+}
+
+/* закрытие кликом по backdrop и клавишей */
+modalBackdrop.addEventListener('click', closeModal);
+closeModalBtn.addEventListener('click', closeModal);
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape' && modalRoot.classList.contains('visible')) closeModal();
+});
+
+/* ========== Render tiles (reused for modal and page view) ========== */
+function renderTiles(items, container){
+  items.forEach(it=>{
+    const t = document.createElement('div');
+    t.className = 'tile';
+    // card html
+    t.innerHTML = `
+      <div style="aspect-ratio:9/16; background:#000; position:relative">
+        <video preload="metadata" poster="${escapeHtml(it.poster||'')}" src="${escapeHtml(it.src||'')}" playsinline ${isTouchDevice() ? 'controls' : ''}></video>
+        <div style="position:absolute;left:8px;top:8px;background:rgba(0,0,0,0.45);padding:4px 8px;border-radius:8px;font-size:12px;color:#fff">Preview</div>
+      </div>
+      <div class="meta">
+        <h4>${escapeHtml(it.title)}</h4>
+        <div class="tag">vertical</div>
+      </div>
+    `;
+    // hover preview only on devices that support hover
+    const videoEl = t.querySelector('video');
+    if(!isTouchDevice()){
+      t.addEventListener('mouseenter', () => {
+        try{
+          videoEl.muted = true;
+          const p = videoEl.play();
+          if(p && typeof p.then==='function') p.catch(()=>{/* autoplay blocked */});
+        }catch(e){}
+      });
+      t.addEventListener('mouseleave', () => {
+        try{ videoEl.pause(); videoEl.currentTime = 0 }catch(e){}
+      });
+    } else {
+      // on touch devices make sure controls are visible
+      videoEl.controls = true;
+    }
+    container.appendChild(t);
+  });
+}
+
+/* ========== Page view (hash navigation) ========== */
+function openCategoryPage(key){
+  window.location.hash = '/' + key;
+}
+
+function renderPageFromHash(){
+  const hash = location.hash.replace(/^#/, '');
+  if(!hash || !hash.startsWith('/')) {
+    // show home
+    pageView.classList.remove('visible');
+    pageView.setAttribute('aria-hidden','true');
+    document.getElementById('home').style.display = '';
+    return;
+  }
+  const key = hash.slice(1);
+  const cat = videosData[key];
+  if(!cat){
+    // unknown hash => go home
+    history.replaceState(null,'',location.pathname);
+    renderPageFromHash();
+    return;
+  }
+  currentCategoryKey = key;
+  // hide home, show page
+  document.getElementById('home').style.display = 'none';
+  pageView.classList.add('visible');
+  pageView.setAttribute('aria-hidden','false');
+  pageTitle.textContent = cat.title;
+  pageSubtitle.textContent = `${cat.items.length} примеров`;
+  pageGrid.innerHTML = '';
+  renderTiles(cat.items, pageGrid);
+}
+
+/* back button */
+backToHome.addEventListener('click', ()=>{
+  history.replaceState(null,'',location.pathname);
+  renderPageFromHash();
+});
+
+/* open from modal to page */
+openAsPageFromModal.addEventListener('click', ()=>{
+  if(!currentCategoryKey) return;
+  openCategoryPage(currentCategoryKey);
+  closeModal();
+});
+
+/* слушаем hashchange */
+window.addEventListener('hashchange', renderPageFromHash);
+
+/* начальная загрузка: если hash уже есть, открыть */
+renderPageFromHash();
+
+/* утилиты */
+function isTouchDevice(){
+  return (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+}
+function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* Accessibility: trap focus in modal (light) */
+modalRoot.addEventListener('keydown', (e)=>{
+  if(e.key !== 'Tab' || !modalRoot.classList.contains('visible')) return;
+  const focusable = modalRoot.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  if(!focusable.length) return;
+  const first = focusable[0], last = focusable[focusable.length-1];
+  if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+});
+
+/* Прогрессивное улучшение: показать визуальную реакцию на открытие папки (brief) */
+foldersGrid.addEventListener('click', (e)=>{
+  const folderEl = e.target.closest('.folder');
+  if(!folderEl) return;
+  // добавить класс open на 600ms для визуала
+  folderEl.classList.add('open');
+  setTimeout(()=>folderEl.classList.remove('open'), 700);
+});
+</script>
+</body>
+</html>
